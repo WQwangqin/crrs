@@ -1,13 +1,7 @@
 protected ResponseEntity<byte[]> downProPdf(HttpServletRequest request,
 			HttpServletResponse response) throws Exception {
 		request.setCharacterEncoding("utf-8");
-
-		String xmhjid = request.getParameter("xmhjid");// 项目环节id
-		String proCzlbId = request.getParameter("proCzlbId");// 材质id
-		String proScdw = request.getParameter("proScdw");// 收藏单位id
-		String dateFrom = request.getParameter("dateFrom");// 开始时间
-		String dateTo = request.getParameter("dateTo");// 结束时间
-
+		
 		String fileName = "xmjzqkb.pdf";
 		String realPath = request.getSession().getServletContext()
 				.getRealPath("/" + DataDictionary.out_file);
@@ -21,41 +15,9 @@ protected ResponseEntity<byte[]> downProPdf(HttpServletRequest request,
 		document.setMargins(15, 15, 15, 15); // z y c d
 		PdfWriter.getInstance(document, new FileOutputStream(outFile));
 		document.open();
-
-		BusAttachmentModel attachmentModel = new BusAttachmentModel();
-		// 材质类别
-		if (!StringUtil.isEmpty(proCzlbId)) {
-			attachmentModel.setProCzlbId(Integer.parseInt(proCzlbId));// 材质
-		}
-		if (!StringUtil.isEmpty(xmhjid)) {
-			attachmentModel.setFjtype(Integer.parseInt(xmhjid));// 材质
-		}
-		if (!StringUtil.isEmpty(proScdw)) {
-			attachmentModel.setProScdw(proScdw);// 单位
-		}
-		// 所属年度
-		if (!StringUtil.isEmpty(dateFrom)) {
-			attachmentModel
-					.setWhereSql(" DATE_FORMAT(pro.pro_xmcjsj, '%Y-%m-%d')>=  DATE_FORMAT('"
-							+ dateFrom + "', '%Y-%m-%d') ");
-		}
-		if (!StringUtil.isEmpty(dateTo)) {
-			attachmentModel
-					.setWhereSql(" DATE_FORMAT(pro.pro_xmcjsj, '%Y-%m-%d')<=  DATE_FORMAT('"
-							+ dateTo + "', '%Y-%m-%d') ");
-		}
-		if (!StringUtil.isEmpty(dateFrom) && !StringUtil.isEmpty(dateTo)) {
-			attachmentModel
-					.setWhereSql(" DATE_FORMAT(pro.pro_xmcjsj, '%Y-%m-%d')>=  DATE_FORMAT('"
-							+ dateFrom
-							+ "', '%Y-%m-%d') and DATE_FORMAT(pro.pro_xmcjsj, '%Y-%m-%d')<=  DATE_FORMAT('"
-							+ dateTo + "', '%Y-%m-%d')");
-		}
-		/*if (StringUtil.isEmpty(dateFrom) && StringUtil.isEmpty(dateTo)) {
-			attachmentModel.setProXmcjsj("1");
-		}*/
+	        //通过访问数据获取需要显示的数据
 		List<BusAttachmentModel> countList = attachmentService
-				.countByType(attachmentModel);
+				.countByType();
 		List<BusAttachmentModel> attachmentlist = attachmentService
 				.countprojectByType(attachmentModel);
 		for (BusAttachmentModel busAttachmentModel : attachmentlist) {
