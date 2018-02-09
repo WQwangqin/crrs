@@ -1,0 +1,90 @@
+protected ResponseEntity<byte[]> downProPdf(HttpServletRequest request,
+			HttpServletResponse response) throws Exception {
+		request.setCharacterEncoding("utf-8");
+
+		String xmhjid = request.getParameter("xmhjid");// 项目环节id
+		String proCzlbId = request.getParameter("proCzlbId");// 材质id
+		String proScdw = request.getParameter("proScdw");// 收藏单位id
+		String dateFrom = request.getParameter("dateFrom");// 开始时间
+		String dateTo = request.getParameter("dateTo");// 结束时间
+
+		String fileName = "xmjzqkb.pdf";
+		String realPath = request.getSession().getServletContext()
+				.getRealPath("/" + DataDictionary.out_file);
+		File outFile = new File(realPath + File.separator + fileName);
+		if (!outFile.exists()) {
+			new File(realPath).mkdirs();
+			outFile.createNewFile();
+		}
+
+		Document document = new Document(PageSize.A4.rotate());
+		document.setMargins(15, 15, 15, 15); // z y c d
+		PdfWriter.getInstance(document, new FileOutputStream(outFile));
+		document.open();
+
+		BusAttachmentModel attachmentModel = new BusAttachmentModel();
+		// 材质类别
+		if (!StringUtil.isEmpty(proCzlbId)) {
+			attachmentModel.setProCzlbId(Integer.parseInt(proCzlbId));// 材质
+		}
+		if (!StringUtil.isEmpty(xmhjid)) {
+			attachmentModel.setFjtype(Integer.parseInt(xmhjid));// 材质
+		}
+		if (!StringUtil.isEmpty(proScdw)) {
+			attachmentModel.setProScdw(proScdw);// 单位
+		}
+		// 所属年度
+		if (!StringUtil.isEmpty(dateFrom)) {
+			attachmentModel
+					.setWhereSql(" DATE_FORMAT(pro.pro_xmcjsj, '%Y-%m-%d')>=  DATE_FORMAT('"
+							+ dateFrom + "', '%Y-%m-%d') ");
+		}
+		if (!StringUtil.isEmpty(dateTo)) {
+			attachmentModel
+					.setWhereSql(" DATE_FORMAT(pro.pro_xmcjsj, '%Y-%m-%d')<=  DATE_FORMAT('"
+							+ dateTo + "', '%Y-%m-%d') ");
+		}
+		if (!StringUtil.isEmpty(dateFrom) && !StringUtil.isEmpty(dateTo)) {
+			attachmentModel
+					.setWhereSql(" DATE_FORMAT(pro.pro_xmcjsj, '%Y-%m-%d')>=  DATE_FORMAT('"
+							+ dateFrom
+							+ "', '%Y-%m-%d') and DATE_FORMAT(pro.pro_xmcjsj, '%Y-%m-%d')<=  DATE_FORMAT('"
+							+ dateTo + "', '%Y-%m-%d')");
+		}
+		/*if (StringUtil.isEmpty(dateFrom) && StringUtil.isEmpty(dateTo)) {
+			attachmentModel.setProXmcjsj("1");
+		}*/
+		List<BusAttachmentModel> countList = attachmentService
+				.countByType(attachmentModel);
+		List<BusAttachmentModel> attachmentlist = attachmentService
+				.countprojectByType(attachmentModel);
+		for (BusAttachmentModel busAttachmentModel : attachmentlist) {
+			List<BusAttachmentEntity> List = attachmentService
+					.findByProId(busAttachmentModel.getProid());
+			for (BusAttachmentEntity busAttachmentEntity : List) {
+				if (busAttachmentEntity.getDqhjzt() == 1) {
+					busAttachmentEntity.setDqhjztName("待完成");
+				} else if (busAttachmentEntity.getDqhjzt() == 2) {
+					busAttachmentEntity.setDqhjztName("已完成");
+				} else if (busAttachmentEntity.getDqhjzt() == 3) {
+					busAttachmentEntity.setDqhjztName("当前环节");
+				} else {
+					busAttachmentEntity.setDqhjztName("已跳过");
+				}
+			}
+			busAttachmentModel.setAttlist(List);
+		}
+
+		if (attachmentlist != null && attachmentlist.size() > 0) {
+			exportPDF(request, document, countList, attachmentlist);
+		}
+		document.close();
+
+		HttpHeaders headers = new HttpHeaders();
+		String downfileName = null;
+		downfileName = new String(("xmjzqkb.pdf").getBytes("GBK"), "ISO-8859-1");
+		headers.setContentDispositionFormData("attachment", downfileName);
+		headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+		return new ResponseEntity<byte[]>(
+				FileUtils.readFileToByteArray(outFile), headers, HttpStatus.OK);
+	}
